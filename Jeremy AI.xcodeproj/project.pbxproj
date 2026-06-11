@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		570833402FDA566A00CF429A /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5708333F2FDA566A00CF429A /* Config.swift */; };
-		570833422FDA576300CF429A /* Config.swift.example in Sources */ = {isa = PBXBuildFile; fileRef = 570833412FDA576300CF429A /* Config.swift.example */; };
 		5785EA0E2FDA3CD8008213C5 /* Polarisapp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5785EA0D2FDA3CD8008213C5 /* Polarisapp.swift */; };
 		5785EA102FDA3D27008213C5 /* Toolsandview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5785EA0F2FDA3D27008213C5 /* Toolsandview.swift */; };
 		57C4BF852FDA3ABA003F7F4C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 57C4BF842FDA3ABA003F7F4C /* Assets.xcassets */; };
@@ -270,7 +269,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				570833422FDA576300CF429A /* Config.swift.example in Sources */,
 				57C4BFAE2FDA3BF3003F7F4C /* AIservice.swift in Sources */,
 				570833402FDA566A00CF429A /* Config.swift in Sources */,
 				5785EA0E2FDA3CD8008213C5 /* Polarisapp.swift in Sources */,
