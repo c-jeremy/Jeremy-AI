@@ -30,8 +30,8 @@ cp "Jeremy AI/Config.swift.example" "Jeremy AI/Config.swift"
 3. Open `Config.swift` and fill in your Cloudflare credentials, learn more about [Cloudflare workers AI](
 https://developers.cloudflare.com/workers-ai) and about [creating an API for Workers AI](https://developers.cloudflare.com/workers-ai/get-started/rest-api/):
 ```swift
-static let cfAccountId = "YOUR_ACCOUNT_ID"
-static let cfApiToken  = "YOUR_API_TOKEN"
+static let cfAccountId = "YOUR_CF_ACCOUNT_ID"
+static let cfApiToken  = "YOUR_CF_API_TOKEN"
 
 ```
 
