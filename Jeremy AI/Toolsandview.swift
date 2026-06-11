@@ -38,22 +38,22 @@ class ToolEngine {
     var definitions: [ToolDefinition] {[
         ToolDefinition(function: ToolFunction(
             name: "add_note",
-            description: "新建一条备忘录",
+            description: "在系统 Notes App 里新建一条备忘录",
             parameters: ToolParameters(
                 properties: [
-                    "title":   ToolProperty(type: "string", description: "标题"),
-                    "content": ToolProperty(type: "string", description: "正文内容")
+                    "title":   ToolProperty(type: "string", description: "备忘录标题"),
+                    "content": ToolProperty(type: "string", description: "备忘录正文内容")
                 ],
                 required: ["title", "content"]
             )
         )),
         ToolDefinition(function: ToolFunction(
             name: "add_calendar_event",
-            description: "新建一个日程",
+            description: "在系统日历里新建一个日程。时间格式必须为 yyyy-MM-dd HH:mm",
             parameters: ToolParameters(
                 properties: [
                     "title":      ToolProperty(type: "string", description: "日程标题"),
-                    "start_time": ToolProperty(type: "string", description: "开始时间，格式必须 yyyy-MM-dd HH:mm"),
+                    "start_time": ToolProperty(type: "string", description: "开始时间，格式 yyyy-MM-dd HH:mm"),
                     "location":   ToolProperty(type: "string", description: "地点（可选）")
                 ],
                 required: ["title", "start_time"]
@@ -61,7 +61,7 @@ class ToolEngine {
         )),
         ToolDefinition(function: ToolFunction(
             name: "open_app",
-            description: "打开某个应用程序",
+            description: "打开 Mac 上的某个应用程序",
             parameters: ToolParameters(
                 properties: [
                     "name": ToolProperty(type: "string", description: "应用名称，例如 Safari、Xcode、Music")
@@ -71,85 +71,49 @@ class ToolEngine {
         )),
         ToolDefinition(function: ToolFunction(
             name: "get_weather",
-            description: "获取某城市的天气，支持今天/明天/后天",
+            description: "获取某个城市的天气，支持今天/明天/后天",
             parameters: ToolParameters(
                 properties: [
-                    "city": ToolProperty(type: "string", description: "城市名，例如Beijing"),
-                    "date": ToolProperty(type: "string", description: "today、tomorrow或day_after_tomorrow，默认 today")
+                    "city": ToolProperty(type: "string", description: "城市名，英文或中文均可"),
+                    "date": ToolProperty(type: "string", description: "today、tomorrow 或 day_after_tomorrow，默认 today")
                 ],
                 required: ["city"]
             )
         )),
     ]}
 
-    // MARK: - 分发
-
     func execute(_ call: ToolCall) async -> ToolExecution {
         let args = parseArgs(call.function.arguments)
         switch call.function.name {
         case "add_note":
-            return addNote(
-                title:   args["title"]   ?? "无标题",
-                content: args["content"] ?? ""
-            )
+            return addNote(title: args["title"] ?? "无标题", content: args["content"] ?? "")
         case "add_calendar_event":
-            return addCalendarEvent(
-                title:     args["title"]      ?? "新日程",
-                startTime: args["start_time"] ?? "",
-                location:  args["location"]
-            )
+            return addCalendarEvent(title: args["title"] ?? "新日程", startTime: args["start_time"] ?? "", location: args["location"])
         case "open_app":
             return openApp(name: args["name"] ?? "")
         case "get_weather":
-            return await getWeather(
-                city: args["city"] ?? "Beijing",
-                date: args["date"] ?? "today"
-            )
+            return await getWeather(city: args["city"] ?? "Beijing", date: args["date"] ?? "today")
         default:
             return ToolExecution(llmResult: "未知工具：\(call.function.name)", card: nil)
         }
     }
 
-    // MARK: - add_note（osascript 子进程）
-
     private func addNote(title: String, content: String) -> ToolExecution {
         let t = title.replacingOccurrences(of: "\"", with: "'")
         let c = content.replacingOccurrences(of: "\"", with: "'")
-        let script = """
-        tell application "Notes"
-            make new note at folder "Notes" with properties {name:"\(t)", body:"\(c)"}
-        end tell
-        """
+        let script = "tell application \"Notes\" to make new note at folder \"Notes\" with properties {name:\"\(t)\", body:\"\(c)\"}"
         let result = runOsascript(script)
-        guard result.success else {
-            return ToolExecution(llmResult: "创建失败：\(result.error)", card: nil)
-        }
-        let card = ResultCard(
-            type: .note,
-            title: title,
-            fields: [("内容", content)],
-            action: .openNotes
-        )
-        return ToolExecution(llmResult: "已保存到 Notes", card: card)
+        guard result.success else { return ToolExecution(llmResult: "备忘录创建失败：\(result.error)", card: nil) }
+        return ToolExecution(llmResult: "备忘录「\(title)」已保存", card: ResultCard(type: .note, title: title, fields: [("内容", content)], action: .openNotes))
     }
 
-    // MARK: - add_calendar_event（osascript 子进程）
-
     private func addCalendarEvent(title: String, startTime: String, location: String?) -> ToolExecution {
-        // 把 "yyyy-MM-dd HH:mm" 转成 AppleScript 能识别的 date 字符串
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd HH:mm"
-        guard let date = fmt.date(from: startTime) else {
-            return ToolExecution(llmResult: "时间格式错误，请用 yyyy-MM-dd HH:mm", card: nil)
-        }
-
-        let asFmt = DateFormatter()
-        asFmt.dateFormat = "MM/dd/yyyy HH:mm:ss"
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd HH:mm"
+        guard let date = fmt.date(from: startTime) else { return ToolExecution(llmResult: "时间格式错误，请用 yyyy-MM-dd HH:mm", card: nil) }
+        let asFmt = DateFormatter(); asFmt.dateFormat = "MM/dd/yyyy HH:mm:ss"
         let asDateStr = asFmt.string(from: date)
-
-        let t        = title.replacingOccurrences(of: "\"", with: "'")
-        let locLine  = location.map { "set location of theEvent to \"\($0.replacingOccurrences(of: "\"", with: "'"))\"" } ?? ""
-
+        let t = title.replacingOccurrences(of: "\"", with: "'")
+        let locLine = location.map { "set location of theEvent to \"\($0.replacingOccurrences(of: "\"", with: "'"))\"" } ?? ""
         let script = """
         tell application "Calendar"
             tell calendar 1
@@ -159,60 +123,35 @@ class ToolEngine {
         end tell
         """
         let result = runOsascript(script)
-        guard result.success else {
-            return ToolExecution(llmResult: "创建失败：\(result.error)", card: nil)
-        }
-
+        guard result.success else { return ToolExecution(llmResult: "日程创建失败：\(result.error)", card: nil) }
         var fields: [(label: String, value: String)] = [("时间", startTime)]
         if let loc = location { fields.append(("地点", loc)) }
-
-        let card = ResultCard(type: .calendarEvent, title: title, fields: fields, action: .openCalendar)
-        return ToolExecution(llmResult: "已添加到日历", card: card)
+        return ToolExecution(llmResult: "日程「\(title)」已添加", card: ResultCard(type: .calendarEvent, title: title, fields: fields, action: .openCalendar))
     }
-
-    // MARK: - open_app
 
     private func openApp(name: String) -> ToolExecution {
         let result = runShell("/usr/bin/open", args: ["-a", name])
-        let msg = result.success ? "已打开 \(name)" : "找不到应用「\(name)」，请检查名称"
-        return ToolExecution(llmResult: msg, card: nil)
+        return ToolExecution(llmResult: result.success ? "已打开 \(name)" : "找不到应用「\(name)」", card: nil)
     }
-
-    // MARK: - get_weather（wttr.in）
 
     private func getWeather(city: String, date: String) async -> ToolExecution {
         let encoded = city.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? city
-        guard let url = URL(string: "https://wttr.in/\(encoded)?format=j1") else {
-            return ToolExecution(llmResult: "城市名无效", card: nil)
-        }
-        guard let (data, _) = try? await URLSession.shared.data(from: url),
+        guard let url = URL(string: "https://wttr.in/\(encoded)?format=j1"),
+              let (data, _) = try? await URLSession.shared.data(from: url),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else {
-            return ToolExecution(llmResult: "获取失败，请检查网络", card: nil)
-        }
+        else { return ToolExecution(llmResult: "天气获取失败", card: nil) }
 
-        let dayIndex: Int
-        switch date {
-        case "tomorrow":           dayIndex = 1
-        case "day_after_tomorrow": dayIndex = 2
-        default:                   dayIndex = 0
-        }
-
+        let dayIndex = date == "tomorrow" ? 1 : date == "day_after_tomorrow" ? 2 : 0
         let weatherArr = json["weather"] as? [[String: Any]] ?? []
         let current    = (json["current_condition"] as? [[String: Any]])?.first
 
         if dayIndex == 0, let cur = current {
             let desc  = ((cur["weatherDesc"] as? [[String: Any]])?.first?["value"] as? String) ?? "—"
-            let temp  = cur["temp_C"]        as? String ?? "—"
-            let humid = cur["humidity"]      as? String ?? "—"
+            let temp  = cur["temp_C"] as? String ?? "—"
+            let humid = cur["humidity"] as? String ?? "—"
             let wind  = cur["windspeedKmph"] as? String ?? "—"
-            let card  = ResultCard(
-                type: .weather, title: "\(city) · 今天",
-                fields: [("天气", desc), ("温度", "\(temp)°C"), ("湿度", "\(humid)%"), ("风速", "\(wind) km/h")],
-                action: nil
-            )
-            return ToolExecution(llmResult: "当前 \(city)：\(desc)，\(temp)°C", card: card)
-
+            return ToolExecution(llmResult: "当前 \(city)：\(desc)，\(temp)°C",
+                card: ResultCard(type: .weather, title: "\(city)  今天", fields: [("天气", desc), ("温度", "\(temp)°C"), ("湿度", "\(humid)%"), ("风速", "\(wind) km/h")], action: nil))
         } else if dayIndex < weatherArr.count {
             let day    = weatherArr[dayIndex]
             let maxT   = day["maxtempC"] as? String ?? "—"
@@ -220,20 +159,12 @@ class ToolEngine {
             let desc   = ((day["hourly"] as? [[String: Any]])?.first?["weatherDesc"] as? [[String: Any]])?.first?["value"] as? String ?? "—"
             let dateStr = day["date"] as? String ?? ""
             let label  = dayIndex == 1 ? "明天" : "后天"
-            let card   = ResultCard(
-                type: .weather, title: "\(city) · \(label)",
-                fields: [("日期", dateStr), ("天气", desc), ("最高", "\(maxT)°C"), ("最低", "\(minT)°C")],
-                action: nil
-            )
-            return ToolExecution(llmResult: "\(label) \(city)：\(desc)，\(minT)~\(maxT)°C", card: card)
+            return ToolExecution(llmResult: "\(label) \(city)：\(desc)，\(minT)~\(maxT)°C",
+                card: ResultCard(type: .weather, title: "\(city)  \(label)", fields: [("日期", dateStr), ("天气", desc), ("最高", "\(maxT)°C"), ("最低", "\(minT)°C")], action: nil))
         }
-
         return ToolExecution(llmResult: "暂无该日期的预报数据", card: nil)
     }
 
-    // MARK: - 底层工具函数
-
-    /// 运行 osascript，权限归属于系统 osascript 二进制，绕开 MenuBarExtra TCC 限制
     @discardableResult
     private func runOsascript(_ script: String) -> (success: Bool, error: String) {
         runShell("/usr/bin/osascript", args: ["-e", script])
@@ -243,19 +174,13 @@ class ToolEngine {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: path)
         process.arguments = args
-
         let errPipe = Pipe()
         process.standardError = errPipe
-
         do {
-            try process.run()
-            process.waitUntilExit()
-            let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
-            let errStr  = String(data: errData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            try process.run(); process.waitUntilExit()
+            let errStr = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             return (process.terminationStatus == 0, errStr)
-        } catch {
-            return (false, error.localizedDescription)
-        }
+        } catch { return (false, error.localizedDescription) }
     }
 
     private func parseArgs(_ json: String) -> [String: String] {
@@ -266,64 +191,94 @@ class ToolEngine {
     }
 }
 
-// MARK: - Card View
+// MARK: - Card View（Liquid Glass 版）
 
 struct CardView: View {
     let card: ResultCard
+    @State private var appeared = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .foregroundStyle(accent)
-                    .font(.system(size: 13, weight: .semibold))
-                    .frame(width: 28, height: 28)
-                    .background(accent.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 7))
-                Text(card.title)
-                    .font(.system(size: 13, weight: .semibold))
+        HStack(alignment: .top, spacing: 14) {
+
+            // 图标柱
+            VStack {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(accent.gradient.opacity(0.85))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: icon)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
                 Spacer()
             }
 
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(card.fields, id: \.label) { field in
-                    HStack(spacing: 6) {
-                        Text(field.label)
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 36, alignment: .leading)
-                        Text(field.value)
-                            .font(.system(size: 12))
+            // 内容柱
+            VStack(alignment: .leading, spacing: 8) {
+                Text(card.title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.primary)
+
+                // 字段
+                VStack(alignment: .leading, spacing: 5) {
+                    ForEach(card.fields, id: \.label) { field in
+                        HStack(alignment: .firstTextBaseline, spacing: 0) {
+                            Text(field.label)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 34, alignment: .leading)
+                            Text(field.value)
+                                .font(.system(size: 12))
+                                .foregroundStyle(.primary.opacity(0.85))
+                        }
                     }
+                }
+
+                if let action = card.action {
+                    Button {
+                        handleAction(action)
+                    } label: {
+                        Text(action.rawValue)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(accent)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(accent.opacity(0.12), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 2)
                 }
             }
 
-            if let action = card.action {
-                Button(action.rawValue) { handleAction(action) }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(accent)
-            }
+            Spacer(minLength: 0)
         }
-        .padding(12)
-        .background(accent.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(accent.opacity(0.15), lineWidth: 1))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        // Liquid Glass 卡片
+        .glassEffect(
+            .regular.tint(accent.opacity(0.04)).interactive(),
+            in: RoundedRectangle(cornerRadius: 14)
+        )
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 6)
+        .onAppear {
+            withAnimation(.spring(duration: 0.38, bounce: 0.18)) { appeared = true }
+        }
     }
 
     private var icon: String {
         switch card.type {
-        case .calendarEvent: return "calendar"
-        case .weather:       return "cloud.sun"
-        case .note:          return "note.text"
+        case .calendarEvent: "calendar"
+        case .weather:       "cloud.sun.fill"
+        case .note:          "note.text"
         }
     }
 
     private var accent: Color {
         switch card.type {
-        case .calendarEvent: return .blue
-        case .weather:       return .cyan
-        case .note:          return .yellow
+        case .calendarEvent: .blue
+        case .weather:       .cyan
+        case .note:          .orange
         }
     }
 
@@ -335,9 +290,11 @@ struct CardView: View {
     }
 }
 
-// MARK: - Spotlight View
+// MARK: - Spotlight View（Liquid Glass 版）
 
 struct SpotlightView: View {
+    var onDismiss: (() -> Void)? = nil
+
     @StateObject private var ai = AIService()
 
     @State private var query     = ""
@@ -347,91 +304,131 @@ struct SpotlightView: View {
 
     @FocusState private var inputFocused: Bool
 
+    private var hasContent: Bool { result != nil || !errorMsg.isEmpty }
+
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                Image(systemName: isLoading ? "sparkles" : "magnifyingglass")
-                    .foregroundStyle(isLoading ? .blue : .secondary)
-                    .symbolEffect(.pulse, isActive: isLoading)
-                    .frame(width: 20)
 
-                TextField("Ask me anything...", text: $query)
+            // ── 搜索框 ────────────────────────────────────────
+            HStack(spacing: 12) {
+                // 图标：idle / thinking
+                ZStack {
+                    Image(systemName: "magnifyingglass")
+                        .opacity(isLoading ? 0 : 1)
+                    Image(systemName: "sparkles")
+                        .symbolEffect(.variableColor.iterative.dimInactiveLayers, isActive: isLoading)
+                        .foregroundStyle(.blue)
+                        .opacity(isLoading ? 1 : 0)
+                }
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 22)
+                .animation(.easeInOut(duration: 0.2), value: isLoading)
+
+                TextField("问点什么，或者让我帮你做点什么", text: $query)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 18))
+                    .font(.system(size: 19, weight: .regular))
                     .focused($inputFocused)
                     .disabled(isLoading)
                     .onSubmit(handleSubmit)
 
-                if !query.isEmpty && !isLoading {
+                if !query.isEmpty {
                     Button {
-                        query    = ""
-                        result   = nil
-                        errorMsg = ""
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            query    = ""
+                            result   = nil
+                            errorMsg = ""
+                        }
                         ai.resetSession()
                     } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.tertiary)
+                            .font(.system(size: 16))
                     }
                     .buttonStyle(.plain)
+                    .transition(.opacity.combined(with: .scale(0.8)))
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.horizontal, 18)
+            .padding(.top, 18)
+            .padding(.bottom, hasContent ? 14 : 18)
 
-            if result != nil || !errorMsg.isEmpty {
+            // ── 结果区 ────────────────────────────────────────
+            if hasContent {
                 Divider()
+                    .opacity(0.25)
+                    .padding(.horizontal, 4)
+
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 8) {
+
+                        // 卡片
                         if let cards = result?.cards, !cards.isEmpty {
-                            ForEach(cards) { card in
-                                CardView(card: card)
-                                    .transition(.move(edge: .top).combined(with: .opacity))
-                            }
+                            ForEach(cards) { CardView(card: $0) }
                         }
+
+                        // 文字回复
                         if let text = result?.text, !text.isEmpty {
                             Text(text)
-                                .font(.system(size: 14))
+                                .font(.system(size: 13.5))
+                                .foregroundStyle(.primary.opacity(0.85))
+                                .lineSpacing(3)
                                 .textSelection(.enabled)
                                 .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 4)
+                                .padding(.top, result?.cards.isEmpty == false ? 4 : 0)
                         }
+
+                        // 错误
                         if !errorMsg.isEmpty {
-                            Label(errorMsg, systemImage: "exclamationmark.triangle")
-                                .font(.system(size: 13))
+                            Label(errorMsg, systemImage: "exclamationmark.triangle.fill")
+                                .font(.system(size: 12.5))
                                 .foregroundStyle(.orange)
+                                .padding(.horizontal, 4)
                         }
                     }
-                    .padding(12)
-                    .animation(.spring(duration: 0.35), value: result?.cards.count)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 12)
                 }
-                .frame(maxHeight: 360)
+                .frame(maxHeight: 380)
             }
 
-            HStack {
-                Text("GLM-4.7 Flash · Cloudflare")
-                    .font(.system(size: 10))
+            // ── 底部栏 ────────────────────────────────────────
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(isLoading ? Color.blue : Color.green)
+                    .frame(width: 5, height: 5)
+                    .opacity(0.7)
+                Text(isLoading ? "思考中…" : "GLM-4.7 Flash  ·  Cloudflare")
+                    .font(.system(size: 10.5, weight: .regular))
                     .foregroundStyle(.tertiary)
                 Spacer()
-                if isLoading { ProgressView().scaleEffect(0.6).frame(height: 12) }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 8)
+            .animation(.easeInOut(duration: 0.3), value: isLoading)
         }
+        // 纯 Liquid Glass，不加任何 background，才能真正折射桌面
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 18))
+        .frame(width: 640)
+        .fixedSize(horizontal: false, vertical: true)
         .onAppear { inputFocused = true }
+        .onExitCommand { onDismiss?() }
     }
 
     func handleSubmit() {
         let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isLoading else { return }
 
+        withAnimation(.easeOut(duration: 0.1)) { result = nil; errorMsg = "" }
         isLoading = true
-        result    = nil
-        errorMsg  = ""
 
         Task {
             do {
                 let r = try await ai.send(userMessage: text)
-                withAnimation { result = r }
+                withAnimation(.spring(duration: 0.4)) { result = r }
             } catch {
-                errorMsg = error.localizedDescription
+                withAnimation { errorMsg = error.localizedDescription }
             }
             isLoading = false
         }
@@ -439,5 +436,8 @@ struct SpotlightView: View {
 }
 
 #Preview {
-    SpotlightView().frame(width: 620)
+    ZStack {
+        Color.gray.opacity(0.3).ignoresSafeArea()
+        SpotlightView().padding(40)
+    }
 }
