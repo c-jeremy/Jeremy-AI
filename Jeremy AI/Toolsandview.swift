@@ -191,74 +191,24 @@ class ToolEngine {
     }
 }
 
-// MARK: - Card View（Liquid Glass 版）
+
+// MARK: - Card View
 
 struct CardView: View {
     let card: ResultCard
     @State private var appeared = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-
-            // 图标柱
-            VStack {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(accent.gradient.opacity(0.85))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: icon)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-                Spacer()
+        Group {
+            switch card.type {
+            case .calendarEvent:
+                renderCalendarCard()
+            case .note:
+                renderNoteCard()
+            case .weather:
+                renderWeatherCard()
             }
-
-            // 内容柱
-            VStack(alignment: .leading, spacing: 8) {
-                Text(card.title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.primary)
-
-                // 字段
-                VStack(alignment: .leading, spacing: 5) {
-                    ForEach(card.fields, id: \.label) { field in
-                        HStack(alignment: .firstTextBaseline, spacing: 0) {
-                            Text(field.label)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 34, alignment: .leading)
-                            Text(field.value)
-                                .font(.system(size: 12))
-                                .foregroundStyle(.primary.opacity(0.85))
-                        }
-                    }
-                }
-
-                if let action = card.action {
-                    Button {
-                        handleAction(action)
-                    } label: {
-                        Text(action.rawValue)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(accent)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(accent.opacity(0.12), in: Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, 2)
-                }
-            }
-
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        // Liquid Glass 卡片
-        .glassEffect(
-            .regular.tint(accent.opacity(0.04)).interactive(),
-            in: RoundedRectangle(cornerRadius: 14)
-        )
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 6)
         .onAppear {
@@ -266,20 +216,205 @@ struct CardView: View {
         }
     }
 
-    private var icon: String {
-        switch card.type {
-        case .calendarEvent: "calendar"
-        case .weather:       "cloud.sun.fill"
-        case .note:          "note.text"
+    // ─── 1. 原生级 日历卡片渲染 ────────────────────────────────────
+    @ViewBuilder
+    private func renderCalendarCard() -> some View {
+        // 数据提取
+        let timeValue = card.fields.first { $0.label == "时间" }?.value ?? "未知时间"
+        let locationValue = card.fields.first { $0.label == "地点" }?.value
+        
+        // 尝试解析月份和日期数字 (格式: 2026-06-14 09:00)
+        let parts = timeValue.split(separator: " ").first?.split(separator: "-") ?? []
+        let monthStr = parts.count >= 2 ? parts[1] : "JUN"
+        let dayStr = parts.count >= 3 ? parts[2] : "14"
+        
+        let displayMonth = formatMonth(String(monthStr))
+        let displayTime = timeValue.split(separator: " ").last.map { String($0) } ?? "09:00"
+
+        HStack(alignment: .top, spacing: 16) {
+            // 左侧：经典苹果日历小图标
+            VStack(spacing: 2) {
+                Text(displayMonth)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.red) // 苹果标志性的日历红
+                Text(String(dayStr))
+                    .font(.system(size: 20, weight: .medium, design: .rounded))
+                    .foregroundStyle(.primary)
+            }
+            .frame(width: 46, height: 44)
+            .background(Color(NSColor.controlBackgroundColor))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            
+            // 右侧：日程详情
+            VStack(alignment: .leading, spacing: 4) {
+                Text(card.title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.primary)
+                
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                        Text(displayTime)
+                    }
+                    if let loc = locationValue, !loc.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 11))
+                            Text(loc)
+                        }
+                    }
+                }
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                
+                // 保留你原有的原生跳转 Button
+                if let action = card.action {
+                    renderActionButton(action, accentColor: .blue)
+                }
+            }
+            Spacer()
         }
+        .padding(14)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: Color.black.opacity(0.12), radius: 6, x: 0, y: 2)
     }
 
-    private var accent: Color {
-        switch card.type {
-        case .calendarEvent: .blue
-        case .weather:       .cyan
-        case .note:          .orange
+    // ─── 2. 原生级 备忘录卡片渲染 ────────────────────────────────────
+    @ViewBuilder
+    private func renderNoteCard() -> some View {
+        let contentValue = card.fields.first { $0.label == "内容" }?.value ?? ""
+
+        HStack(alignment: .top, spacing: 16) {
+            // 左侧：第一方备忘录小黄本 Icon
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.orange.opacity(0.15))
+                    .frame(width: 44, height: 44)
+                Image(systemName: "note.text")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.orange)
+            }
+            
+            // 右侧：文字详情
+            VStack(alignment: .leading, spacing: 4) {
+                Text(card.title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.primary)
+                
+                Text(contentValue)
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                
+                Text("今天")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 2)
+                
+                if let action = card.action {
+                    renderActionButton(action, accentColor: .orange)
+                }
+            }
+            Spacer()
         }
+        .padding(14)
+        .background(Color(NSColor.controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: Color.black.opacity(0.12), radius: 6, x: 0, y: 2)
+    }
+
+    // ─── 3. 原生级 天气卡片渲染 ────────────────────────────────────
+    @ViewBuilder
+    private func renderWeatherCard() -> some View {
+        // 从你原本解析的 wttr.in fields 中安全提取数据
+        let desc = card.fields.first { $0.label == "天气" }?.value ?? "—"
+        // 如果有当前温度就用当前温度，没有的话（比如预测明天），就直接拿“最高温”来撑场面！
+        let tempValue = card.fields.first { $0.label == "温度" }?.value
+                     ?? card.fields.first { $0.label == "最高" }?.value
+                     ?? "—"
+        let maxT = card.fields.first { $0.label == "最高" }?.value
+        let minT = card.fields.first { $0.label == "最低" }?.value
+        
+        let displayTemp = tempValue.replacingOccurrences(of: "°C", with: "")
+        let hasRange = maxT != nil && minT != nil
+        let rangeText = hasRange ? "H: \(maxT!)  L: \(minT!)" : "湿度: \(card.fields.first { $0.label == "湿度" }?.value ?? "—")"
+
+        HStack(alignment: .center, spacing: 16) {
+            // 左侧：苹果标志性的多色渲染太阳云朵
+            Image(systemName: weatherIcon(for: desc))
+                .symbolRenderingMode(.multicolor)
+                .font(.system(size: 34))
+                .frame(width: 44)
+            
+            // 中间：城市及预报信息
+            VStack(alignment: .leading, spacing: 2) {
+                Text(card.title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.primary)
+                Text(desc)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+            
+            // 右侧：原生天气大数字排版
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("\(displayTemp)°")
+                    .font(.system(size: 28, weight: .medium, design: .rounded))
+                    .foregroundStyle(.primary)
+                Text(rangeText)
+                    .font(.system(size: 10.5, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [Color.blue.opacity(0.06), Color.indigo.opacity(0.03)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .background(Color(NSColor.controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.white.opacity(0.04), lineWidth: 0.5)
+        )
+        .shadow(color: Color.black.opacity(0.12), radius: 6, x: 0, y: 2)
+    }
+
+    // ─── 4. 通用封装：跳转原生应用的胶囊按钮 ──────────────────────────────────
+    @ViewBuilder
+    private func renderActionButton(_ action: CardAction, accentColor: Color) -> some View {
+        Button {
+            handleAction(action)
+        } label: {
+            Text(action.rawValue)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(accentColor)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(accentColor.opacity(0.12), in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 4)
+    }
+
+    // ─── 5. 辅助解析工具函数 ─────────────────────────────────────────
+    private func formatMonth(_ numStr: String) -> String {
+        let dict = ["01":"JAN", "02":"FEB", "03":"MAR", "04":"APR", "05":"MAY", "06":"JUN", "07":"JUL", "08":"AUG", "09":"SEP", "10":"OCT", "11":"NOV", "12":"DEC"]
+        return dict[numStr] ?? numStr.uppercased()
+    }
+
+    private func weatherIcon(for desc: String) -> String {
+        let d = desc.lowercased()
+        if d.contains("sun") || d.contains("clear") || d.contains("晴") { return "sun.max.fill" }
+        if d.contains("rain") || d.contains("雨") { return "cloud.rain.fill" }
+        if d.contains("snow") || d.contains("雪") { return "snowflake" }
+        return "cloud.sun.fill" // 默认局部多云
     }
 
     private func handleAction(_ action: CardAction) {
