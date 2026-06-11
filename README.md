@@ -34,7 +34,7 @@ static let cfAccountId = "YOUR_ACCOUNT_ID"
 static let cfApiToken  = "YOUR_API_TOKEN"
 
 ```
-then **rename it into `Config.swift`**.
+
 
 
 4. Open `Jeremy AI.xcodeproj` in Xcode, choose your target, and press `⌘ R` to run!
