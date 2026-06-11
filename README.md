@@ -27,7 +27,7 @@ cp "Jeremy AI/Config.swift.example" "Jeremy AI/Config.swift"
 ```
 
 
-3. Open `Config.swift.example` and fill in your Cloudflare credentials, learn more about [Cloudflare workers AI](
+3. Open `Config.swift` and fill in your Cloudflare credentials, learn more about [Cloudflare workers AI](
 https://developers.cloudflare.com/workers-ai) and about [creating an API for Workers AI](https://developers.cloudflare.com/workers-ai/get-started/rest-api/):
 ```swift
 static let cfAccountId = "YOUR_ACCOUNT_ID"
