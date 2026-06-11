@@ -1,0 +1,31 @@
+name: Jeremy AI - Verify Code
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  verify:
+    name: Xcode Compile Check
+    runs-on: macos-latest
+
+    steps:
+      
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Dummy Config
+        run: |
+          if [ ! -f "Jeremy AI/Config.swift" ]; then
+            cp "Jeremy AI/Config.swift.example" "Jeremy AI/Config.swift"
+          fi
+
+      - name: Build and Analyze
+        run: |
+          xcodebuild build-for-testing \
+                     -project "Jeremy AI.xcodeproj" \
+                     -scheme "Jeremy AI" \
+                     -configuration Debug \
+                     CODE_SIGNING_ALLOWED=NO
