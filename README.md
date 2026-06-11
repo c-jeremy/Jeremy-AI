@@ -3,6 +3,9 @@
 
 A personal AI agent for Mac users while we still don't have system-level Siri AI. Built with SwiftUI with AppleScript under-hood, powered by Cloudflare Workers AI.
 
+<img width="768" height="470" alt="截屏2026-06-11 23 19 38" src="https://github.com/user-attachments/assets/935ac1c2-4f46-4d26-be1b-60b5c35b45ec" />
+
+
 ## Features
 - **MenuBar Extra**: Access your agent instantly from the macOS status bar.
 - **System Integration**: Seamlessly interacts with system apps like Calendar and Notes via AppleScript.
