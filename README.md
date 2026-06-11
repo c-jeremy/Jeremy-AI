@@ -10,8 +10,8 @@ A personal AI agent for Mac users while we still don't have system-level Siri AI
 ## Getting Started
 
 ### Prerequisites
-- macOS 14.0+
-- Xcode 14.0+
+- macOS 26.0+
+- Xcode 26.0+
 - A Cloudflare Account (with Workers AI enabled)
 
 ### Build & Run
