@@ -1,0 +1,18 @@
+//
+//  Config.swift
+//  Jeremy AI
+//
+//  Created by jeremy on 2026/6/11.
+//
+
+// MARK: - 全局配置
+
+enum Config {
+    static let cfAccountId = "YOUR_CF_ACCOUNT_ID" // c08dcc5178b4aa...
+    static let cfApiToken  = "YOUR_CF_API_TOKEN" // cfut_...
+    static let cfModel     = "@cf/zai-org/glm-4.7-flash"
+
+    static var cfEndpoint: String {
+        "https://api.cloudflare.com/client/v4/accounts/\(cfAccountId)/ai/run/\(cfModel)"
+    }
+}
