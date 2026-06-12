@@ -37,6 +37,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var localMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // 设为 accessory：不出现在 Dock，不抢菜单栏，第一次点击不会被激活过程吃掉
+        NSApp.setActivationPolicy(.accessory)
         setupStatusItem()
         setupPanel()
         setupHotkey()
@@ -81,6 +83,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: 双击 ⌥ 全局快捷键
 
     private var lastOptionTapTime: Date?
+    private var lastToggleTime: Date = .distantPast
 
     private func setupHotkey() {
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
@@ -116,6 +119,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: 显示 / 隐藏
 
     @objc func togglePanel() {
+        let now = Date()
+        guard now.timeIntervalSince(lastToggleTime) > 0.5 else { return }
+        lastToggleTime = now
+
         if panel?.isVisible == true {
             hidePanel()
         } else {
@@ -133,7 +140,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         panel.alphaValue = 0
         panel.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
 
         // 稍微延迟一下再设 first responder，确保 SwiftUI 已经完成布局
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
