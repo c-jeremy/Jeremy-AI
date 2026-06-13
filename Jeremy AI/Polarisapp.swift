@@ -37,8 +37,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var localMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // 设为 accessory：不出现在 Dock，不抢菜单栏，第一次点击不会被激活过程吃掉
-        NSApp.setActivationPolicy(.accessory)
         setupStatusItem()
         setupPanel()
         setupHotkey()
@@ -120,7 +118,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func togglePanel() {
         let now = Date()
-        guard now.timeIntervalSince(lastToggleTime) > 0.5 else { return }
+        guard now.timeIntervalSince(lastToggleTime) > 0.6 else { return } // to fix bug: first time toggle might cause conflict in local and global listener, causing the immediate show - hide of search bar
         lastToggleTime = now
 
         if panel?.isVisible == true {
@@ -140,6 +138,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         panel.alphaValue = 0
         panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
 
         // 稍微延迟一下再设 first responder，确保 SwiftUI 已经完成布局
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {

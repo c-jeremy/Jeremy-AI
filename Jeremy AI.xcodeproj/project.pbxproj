@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		57059B6A2FDB0A6000157895 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 57059B692FDB0A6000157895 /* Localizable.xcstrings */; };
 		570833402FDA566A00CF429A /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5708333F2FDA566A00CF429A /* Config.swift */; };
 		5785EA0E2FDA3CD8008213C5 /* Polarisapp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5785EA0D2FDA3CD8008213C5 /* Polarisapp.swift */; };
 		5785EA102FDA3D27008213C5 /* Toolsandview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5785EA0F2FDA3D27008213C5 /* Toolsandview.swift */; };
@@ -36,6 +37,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		57059B692FDB0A6000157895 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		5708333F2FDA566A00CF429A /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		570833412FDA576300CF429A /* Config.swift.example */ = {isa = PBXFileReference; lastKnownFileType = text; path = Config.swift.example; sourceTree = "<group>"; };
 		5785EA0D2FDA3CD8008213C5 /* Polarisapp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Polarisapp.swift; sourceTree = "<group>"; };
@@ -99,6 +101,7 @@
 				5785EA0F2FDA3D27008213C5 /* Toolsandview.swift */,
 				57C4BFAD2FDA3BF3003F7F4C /* AIservice.swift */,
 				5785EA0D2FDA3CD8008213C5 /* Polarisapp.swift */,
+				57059B692FDB0A6000157895 /* Localizable.xcstrings */,
 				5708333F2FDA566A00CF429A /* Config.swift */,
 				570833412FDA576300CF429A /* Config.swift.example */,
 				57C4BF842FDA3ABA003F7F4C /* Assets.xcassets */,
@@ -211,11 +214,12 @@
 				};
 			};
 			buildConfigurationList = 57C4BF782FDA3AB9003F7F4C /* Build configuration list for PBXProject "Jeremy AI" */;
-			developmentRegion = en;
+			developmentRegion = "zh-Hans";
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				"zh-Hans",
 			);
 			mainGroup = 57C4BF742FDA3AB9003F7F4C;
 			preferredProjectObjectVersion = 100;
@@ -236,6 +240,7 @@
 			files = (
 				57C4BF882FDA3ABA003F7F4C /* Preview Assets.xcassets in Resources */,
 				57C4BF852FDA3ABA003F7F4C /* Assets.xcassets in Resources */,
+				57059B6A2FDB0A6000157895 /* Localizable.xcstrings in Resources */,
 			);
 		};
 		57C4BF8C2FDA3ABA003F7F4C /* Resources */ = {
@@ -348,6 +353,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -404,6 +410,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Release;
 		};
@@ -421,6 +428,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Jeremy-AI-Info.plist";
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -450,6 +458,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Jeremy-AI-Info.plist";
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (

@@ -16,13 +16,20 @@ enum CardType {
 enum CardAction: String {
     case openCalendar = "打开日历"
     case openNotes    = "打开备忘录"
+    
+    var localizedTitle: LocalizedStringResource {
+        switch self {
+        case .openCalendar: return "打开日历"
+        case .openNotes:    return "打开备忘录"
+        }
+    }
 }
 
 struct ResultCard: Identifiable {
     let id     = UUID()
     let type:   CardType
     let title:  String
-    let fields: [(label: String, value: String)]
+    let fields: [(label: LocalizedStringResource, value: String)]
     let action: CardAction?
 }
 
@@ -104,7 +111,7 @@ class ToolEngine {
         let script = "tell application \"Notes\" to make new note at folder \"Notes\" with properties {name:\"\(t)\", body:\"\(c)\"}"
         let result = runOsascript(script)
         guard result.success else { return ToolExecution(llmResult: "备忘录创建失败：\(result.error)", card: nil) }
-        return ToolExecution(llmResult: "备忘录「\(title)」已保存", card: ResultCard(type: .note, title: title, fields: [("内容", content)], action: .openNotes))
+        return ToolExecution(llmResult: "备忘录「\(title)」已保存", card: ResultCard(type: .note, title: title, fields: [(LocalizedStringResource("内容"), content)], action: .openNotes))
     }
 
     private func addCalendarEvent(title: String, startTime: String, location: String?) -> ToolExecution {
@@ -124,7 +131,7 @@ class ToolEngine {
         """
         let result = runOsascript(script)
         guard result.success else { return ToolExecution(llmResult: "日程创建失败：\(result.error)", card: nil) }
-        var fields: [(label: String, value: String)] = [("时间", startTime)]
+        var fields: [(label: LocalizedStringResource, value: String)] = [(LocalizedStringResource("时间"), startTime)]
         if let loc = location { fields.append(("地点", loc)) }
         return ToolExecution(llmResult: "日程「\(title)」已添加", card: ResultCard(type: .calendarEvent, title: title, fields: fields, action: .openCalendar))
     }
@@ -151,7 +158,12 @@ class ToolEngine {
             let humid = cur["humidity"] as? String ?? "—"
             let wind  = cur["windspeedKmph"] as? String ?? "—"
             return ToolExecution(llmResult: "当前 \(city)：\(desc)，\(temp)°C",
-                card: ResultCard(type: .weather, title: "\(city)  今天", fields: [("天气", desc), ("温度", "\(temp)°C"), ("湿度", "\(humid)%"), ("风速", "\(wind) km/h")], action: nil))
+                card: ResultCard(type: .weather, title: "\(city)  今天", fields: [
+                    (LocalizedStringResource("天气"), desc),
+                    (LocalizedStringResource("温度"), "\(temp)°C"),
+                    (LocalizedStringResource("湿度"), "\(humid)%"),
+                    (LocalizedStringResource("风速"), "\(wind) km/h")
+                ], action: nil))
         } else if dayIndex < weatherArr.count {
             let day    = weatherArr[dayIndex]
             let maxT   = day["maxtempC"] as? String ?? "—"
@@ -160,7 +172,12 @@ class ToolEngine {
             let dateStr = day["date"] as? String ?? ""
             let label  = dayIndex == 1 ? "明天" : "后天"
             return ToolExecution(llmResult: "\(label) \(city)：\(desc)，\(minT)~\(maxT)°C",
-                card: ResultCard(type: .weather, title: "\(city)  \(label)", fields: [("日期", dateStr), ("天气", desc), ("最高", "\(maxT)°C"), ("最低", "\(minT)°C")], action: nil))
+                card: ResultCard(type: .weather, title: "\(city)  \(label)", fields: [
+                    (LocalizedStringResource("日期"), dateStr),
+                    (LocalizedStringResource("天气"), desc),
+                    (LocalizedStringResource("最高"), "\(maxT)°C"),
+                    (LocalizedStringResource("最低"), "\(minT)°C")
+                ], action: nil))
         }
         return ToolExecution(llmResult: "暂无该日期的预报数据", card: nil)
     }
@@ -220,8 +237,8 @@ struct CardView: View {
     @ViewBuilder
     private func renderCalendarCard() -> some View {
         // 数据提取
-        let timeValue = card.fields.first { $0.label == "时间" }?.value ?? "未知时间"
-        let locationValue = card.fields.first { $0.label == "地点" }?.value
+        let timeValue = card.fields.first { "\($0.label)" == "时间" }?.value ?? "未知时间"
+        let locationValue = card.fields.first { "\($0.label)" == "地点" }?.value
         
         // 尝试解析月份和日期数字 (格式: 2026-06-14 09:00)
         let parts = timeValue.split(separator: " ").first?.split(separator: "-") ?? []
@@ -392,7 +409,7 @@ struct CardView: View {
         Button {
             handleAction(action)
         } label: {
-            Text(action.rawValue)
+            Text(action.localizedTitle)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(accentColor)
                 .padding(.horizontal, 10)

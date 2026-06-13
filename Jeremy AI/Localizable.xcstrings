@@ -1,0 +1,122 @@
+{
+  "sourceLanguage" : "zh-Hans",
+  "strings" : {
+    "%@°" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@°"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@°"
+          }
+        }
+      }
+    },
+    "GLM-4.7 Flash  ·  Cloudflare" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GLM-4.7 Flash  ·  Cloudflare"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GLM-4.7 Flash  ·  Cloudflare"
+          }
+        }
+      }
+    },
+    "今天" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天"
+          }
+        }
+      }
+    },
+    "内容" : {
+
+    },
+    "最低" : {
+
+    },
+    "最高" : {
+
+    },
+    "地点" : {
+
+    },
+    "天气" : {
+
+    },
+    "思考中…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Thinking…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "思考中"
+          }
+        }
+      }
+    },
+    "打开备忘录" : {
+
+    },
+    "打开日历" : {
+
+    },
+    "日期" : {
+
+    },
+    "时间" : {
+
+    },
+    "温度" : {
+
+    },
+    "湿度" : {
+
+    },
+    "问点什么，或者让我帮你做点什么" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ask me anything…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "问点什么…"
+          }
+        }
+      }
+    },
+    "风速" : {
+
+    }
+  },
+  "version" : "1.2"
+}
